@@ -11,7 +11,7 @@
         // Change this value whenever the application code is updated.
         // A versioned URL prevents an older HTML document from being reused.
         (() => {
-            const APP_CACHE_VERSION = '20260921-05';
+            const APP_CACHE_VERSION = '20260921-06';
             window.APP_CACHE_VERSION = APP_CACHE_VERSION;
 
             if (location.protocol === 'http:' || location.protocol === 'https:') {
@@ -57,9 +57,17 @@
         }
     </script>
     <style>
+        html,
+        body {
+            min-height: 100%;
+            background-color: #F4EAD5;
+            background-image: radial-gradient(#D4AF37 0.75px, transparent 0.75px), radial-gradient(#D4AF37 0.75px, #F4EAD5 0.75px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+        }
+
         body {
             font-family: 'Zen Maru Gothic', sans-serif;
-            background-color: #1A1A1A;
             color: #2C2A29;
             min-height: 100vh;
             margin: 0;
@@ -67,20 +75,50 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* iPhone-sized content column; keep normal page scrolling for Safari's URL bar. */
+        /* Full-width shell: the patterned background now fills wider iPhones too. */
         .iphone-frame {
             width: 100%;
-            max-width: 390px;
             min-height: 100vh;
             min-height: 100dvh;
             height: auto;
-            margin: 0 auto;
             position: relative;
-            background-color: #FDFBF7;
+            background: transparent;
             overflow: visible;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
+        }
+
+        /* Keep study content readable while allowing the header/background to fill the device. */
+        #app-content > section {
+            width: 100%;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .app-header {
+            display: grid !important;
+            grid-template-columns: minmax(52px, 1fr) auto minmax(52px, 1fr);
+            width: 100%;
+            padding-left: clamp(0.65rem, 3vw, 1.25rem);
+            padding-right: clamp(0.65rem, 3vw, 1.25rem);
+        }
+
+        #btn-back {
+            grid-column: 1;
+            justify-self: start;
+        }
+
+        #app-header-title {
+            grid-column: 2;
+            justify-self: center;
+            white-space: nowrap;
+            font-size: clamp(0.9rem, 4vw, 1.15rem);
+        }
+
+        #btn-audio-toggle {
+            grid-column: 3;
+            justify-self: end;
         }
 
         /* Tatami / Traditional Pattern Background */
@@ -194,7 +232,8 @@
             }
 
             .app-header {
-                padding: 0.45rem 0.65rem;
+                padding-top: 0.45rem;
+                padding-bottom: 0.45rem;
             }
 
             #screen-learning {
@@ -272,9 +311,45 @@
                 font-size: 10px;
             }
         }
+
+        /* iPhone Safari needs root-page scroll distance before its URL bar can collapse. */
+        @supports (-webkit-touch-callout: none) {
+            body::after {
+                content: '';
+                display: block;
+                height: 0;
+                transition: height 0.15s ease;
+            }
+
+            body.safari-scroll-mode::after {
+                height: 180px;
+            }
+        }
+
+        /* Keep navigation comfortably above Safari's lower URL/toolbar area. */
+        @media (max-width: 600px) {
+            #screen-learning {
+                padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+            }
+
+            .learning-navigation {
+                position: fixed;
+                left: 50%;
+                bottom: calc(3.5rem + env(safe-area-inset-bottom));
+                transform: translateX(-50%);
+                width: min(calc(100% - 1rem), 464px);
+                z-index: 45;
+                padding: 0.35rem;
+                border-radius: 0.9rem;
+                background: rgba(244, 234, 213, 0.94);
+                box-shadow: 0 4px 16px rgba(44, 42, 41, 0.16);
+                -webkit-backdrop-filter: blur(6px);
+                backdrop-filter: blur(6px);
+            }
+        }
     </style>
 </head>
-<body class="min-h-screen bg-neutral-900">
+<body class="min-h-screen">
 
     <!-- MAIN IPHONE FRAME CONTAINER -->
     <div class="iphone-frame flex flex-col justify-between select-none font-gothic">
@@ -806,6 +881,10 @@
         // SCREEN NAVIGATION
         function showScreen(screenId) {
             stopRecitation();
+            document.body.classList.toggle(
+                'safari-scroll-mode',
+                screenId === 'learning' || screenId === 'test'
+            );
             const screens = ['screen-set-select', 'screen-learning', 'screen-test', 'screen-result'];
             screens.forEach(id => {
                 document.getElementById(id).classList.add('hidden');
