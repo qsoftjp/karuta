@@ -11,7 +11,7 @@
         // Change this value whenever the application code is updated.
         // A versioned URL prevents an older HTML document from being reused.
         (() => {
-            const APP_CACHE_VERSION = '20260921-04';
+            const APP_CACHE_VERSION = '20260921-05';
             window.APP_CACHE_VERSION = APP_CACHE_VERSION;
 
             if (location.protocol === 'http:' || location.protocol === 'https:') {
@@ -61,24 +61,23 @@
             font-family: 'Zen Maru Gothic', sans-serif;
             background-color: #1A1A1A;
             color: #2C2A29;
-            min-height: 100dvh;
-            height: 100dvh;
-            overflow: hidden;
+            min-height: 100vh;
+            margin: 0;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Target iPhone 12 Pro proportions */
+        /* iPhone-sized content column; keep normal page scrolling for Safari's URL bar. */
         .iphone-frame {
             width: 100%;
             max-width: 390px;
-            height: 100vh;
-            height: 100dvh;
-            max-height: 844px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            height: auto;
             margin: 0 auto;
             position: relative;
             background-color: #FDFBF7;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
@@ -149,7 +148,7 @@
 
         /* The card consumes only the space left above the always-visible nav. */
         .learning-card {
-            height: 100%;
+            height: clamp(420px, calc(100dvh - 155px), 520px);
             max-height: 520px;
         }
 
@@ -172,12 +171,13 @@
         #screen-learning,
         #screen-test,
         #screen-result {
-            min-height: 0;
-            overflow: hidden;
+            min-height: calc(100dvh - 56px);
+            overflow: visible;
         }
 
         #app-content {
             min-height: 0;
+            overflow: visible;
         }
 
         .learning-navigation {
@@ -274,13 +274,13 @@
         }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen bg-neutral-900">
+<body class="min-h-screen bg-neutral-900">
 
     <!-- MAIN IPHONE FRAME CONTAINER -->
     <div class="iphone-frame flex flex-col justify-between select-none font-gothic">
         
         <!-- HEADER -->
-        <header class="app-header bg-wafuu-red text-wafuu-paper p-3 flex items-center justify-between shadow-md z-20">
+        <header class="app-header bg-wafuu-red text-wafuu-paper p-3 flex items-center justify-between shadow-md sticky top-0 z-50">
             <button id="btn-back" onclick="showScreen('set-select')" class="text-wafuu-paper px-2 py-1 rounded hidden hover:text-wafuu-gold transition">
                 <i class="fa-solid fa-chevron-left text-lg"></i> <span class="text-xs font-bold">戻る</span>
             </button>
@@ -813,18 +813,13 @@
             document.getElementById(`screen-${screenId}`).classList.remove('hidden');
 
             const btnBack = document.getElementById('btn-back');
-            const appContent = document.getElementById('app-content');
             if (screenId === 'set-select') {
                 btnBack.classList.add('hidden');
-                appContent.classList.remove('overflow-hidden');
-                appContent.classList.add('overflow-y-auto');
                 document.getElementById('app-header-title').innerHTML = `<i class="fa-solid fa-scroll text-wafuu-gold"></i> 百人一首マスター`;
                 renderSetsGrid();
                 updateOverallProgressUI();
             } else {
                 btnBack.classList.remove('hidden');
-                appContent.classList.remove('overflow-y-auto');
-                appContent.classList.add('overflow-hidden');
             }
         }
 
