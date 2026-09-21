@@ -9,18 +9,39 @@
     <title>百人一首マスター - 5問ずつ覚える学習＆テスト</title>
     <script>
         // Change this value whenever the application code is updated.
-        // A versioned URL prevents an older HTML document from being reused.
+        // Check for a newer version without navigating away during normal viewing.
         (() => {
-            const APP_CACHE_VERSION = '20260921-06';
+            const APP_CACHE_VERSION = '20260921-08';
             window.APP_CACHE_VERSION = APP_CACHE_VERSION;
 
-            if (location.protocol === 'http:' || location.protocol === 'https:') {
-                const currentUrl = new URL(location.href);
-                if (currentUrl.searchParams.get('appv') !== APP_CACHE_VERSION) {
-                    currentUrl.searchParams.set('appv', APP_CACHE_VERSION);
-                    location.replace(currentUrl.toString());
+            async function checkForAppUpdate() {
+                if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+
+                try {
+                    const checkUrl = new URL(location.href);
+                    checkUrl.searchParams.set('_cachecheck', Date.now().toString());
+                    const response = await fetch(checkUrl.toString(), { cache: 'no-store' });
+                    if (!response.ok) return;
+
+                    const latestSource = await response.text();
+                    const versionMatch = latestSource.match(/APP_CACHE_VERSION\s*=\s*['\"]([^'\"]+)['\"]/);
+                    const latestVersion = versionMatch ? versionMatch[1] : null;
+
+                    if (latestVersion && latestVersion !== APP_CACHE_VERSION) {
+                        const reloadKey = `hyakunin-app-reloaded-${latestVersion}`;
+                        if (!sessionStorage.getItem(reloadKey)) {
+                            sessionStorage.setItem(reloadKey, '1');
+                            const refreshUrl = new URL(location.href);
+                            refreshUrl.searchParams.set('_refresh', latestVersion);
+                            location.replace(refreshUrl.toString());
+                        }
+                    }
+                } catch (error) {
+                    // Offline and restricted preview environments continue normally.
                 }
             }
+
+            window.addEventListener('load', checkForAppUpdate, { once: true });
         })();
     </script>
     <!-- Tailwind CSS -->
@@ -205,12 +226,30 @@
             white-space: pre;
         }
 
-        /* Keep the learning and test views inside an iPhone 12 viewport (390 x 844). */
+        /* Screen contents use normal document flow unless a device rule overrides it. */
         #screen-learning,
         #screen-test,
         #screen-result {
-            min-height: calc(100dvh - 56px);
             overflow: visible;
+        }
+
+        #screen-test {
+            justify-content: flex-start;
+            gap: 0.75rem;
+        }
+
+        #choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        #test-feedback-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
         }
 
         #app-content {
@@ -328,8 +367,43 @@
 
         /* Keep navigation comfortably above Safari's lower URL/toolbar area. */
         @media (max-width: 600px) {
+            #app-content {
+                padding: 0.5rem;
+            }
+
+            #screen-learning,
+            #screen-test,
+            #screen-result {
+                min-height: calc(100dvh - 56px);
+            }
+
             #screen-learning {
                 padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+            }
+
+            #screen-test {
+                height: auto;
+                min-height: calc(100dvh - 56px);
+                justify-content: flex-start;
+                gap: 0.5rem;
+                padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+            }
+
+            .test-question-card {
+                padding: 0.75rem;
+            }
+
+            #choices-container {
+                display: flex;
+                flex-direction: column;
+                gap: 0.4rem;
+                margin: 0;
+            }
+
+            .test-choice {
+                padding: 0.6rem 0.7rem;
+                font-size: 0.8rem;
+                line-height: 1.25;
             }
 
             .learning-navigation {
@@ -345,6 +419,62 @@
                 box-shadow: 0 4px 16px rgba(44, 42, 41, 0.16);
                 -webkit-backdrop-filter: blur(6px);
                 backdrop-filter: blur(6px);
+            }
+
+            #test-feedback-modal {
+                align-items: flex-start;
+                padding-top: max(5rem, env(safe-area-inset-top));
+                padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+                overflow-y: auto;
+            }
+        }
+
+        /* Desktop/tablet layout: keep controls in flow and within the viewport. */
+        @media (min-width: 601px) {
+            #app-content {
+                padding: 1.25rem;
+            }
+
+            #app-content > section {
+                max-width: 680px;
+            }
+
+            #screen-learning {
+                width: 100%;
+                height: calc(100dvh - 88px);
+                min-height: 480px;
+                max-width: 680px;
+                padding-bottom: 0.5rem;
+            }
+
+            #flash-card {
+                max-width: 420px;
+            }
+
+            .learning-card {
+                height: 100%;
+                min-height: 390px;
+                max-height: 520px;
+            }
+
+            .learning-navigation {
+                position: static;
+                width: min(100%, 420px);
+                margin: 0 auto;
+                transform: none;
+            }
+
+            #screen-test {
+                max-width: 640px;
+                min-height: 0;
+                height: auto;
+                justify-content: flex-start;
+                gap: 0.75rem;
+                padding-bottom: 2rem;
+            }
+
+            #choices-container {
+                margin: 0;
             }
         }
     </style>
@@ -395,7 +525,7 @@
 
 
             <!-- 2. LEARNING MODE SCREEN -->
-            <section id="screen-learning" class="hidden flex flex-col h-full gap-2 pb-1">
+            <section id="screen-learning" class="hidden flex flex-col gap-2 pb-1">
                 <!-- Top Info bar -->
                 <div class="flex items-center justify-between text-xs font-bold text-wafuu-red px-1 pt-1">
                     <span id="learning-set-title" class="flex items-center gap-1">
@@ -487,7 +617,7 @@
 
 
             <!-- 3. TEST MODE SCREEN -->
-            <section id="screen-test" class="hidden flex flex-col h-full justify-between space-y-3">
+            <section id="screen-test" class="hidden flex flex-col gap-3">
                 <!-- Test Header -->
                 <div class="flex items-center justify-between text-xs font-bold text-wafuu-red">
                     <span id="test-set-title">第1セット テスト</span>
@@ -512,7 +642,7 @@
                 </div>
 
                 <!-- 4 CHOICES LIST -->
-                <div id="choices-container" class="space-y-2 my-auto">
+                <div id="choices-container">
                     <!-- Dynamic Choice Buttons -->
                 </div>
 
@@ -531,7 +661,7 @@
 
 
             <!-- 4. EXTRAVAGANT CELEBRATION / RESULT SCREEN -->
-            <section id="screen-result" class="hidden flex flex-col h-full justify-between text-center py-4 space-y-4">
+            <section id="screen-result" class="hidden flex flex-col justify-between text-center py-4 space-y-4">
                 <div class="space-y-2">
                     <div id="result-badge-icon" class="inline-block text-6xl text-wafuu-gold drop-shadow-md">
                         <i class="fa-solid fa-crown"></i>
