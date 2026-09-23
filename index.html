@@ -819,6 +819,7 @@
         let testQuestions = [];
         let currentTestIdx = 0;
         let currentTestScore = 0;
+        let feedbackModalTimer = null;
 
         // User Progress Storage in Memory
         let userProgress = {}; // { setIndex: { learned: boolean, testScore: number, stars: number } }
@@ -1209,6 +1210,7 @@
             currentSetIndex = setIdx;
             currentTestIdx = 0;
             currentTestScore = 0;
+            resetTestFeedbackState();
 
             const setPoems = ALL_POEMS.slice(setIdx * 5, setIdx * 5 + 5);
             
@@ -1289,9 +1291,19 @@
                 feedbackMsg.innerText = `正解は「${correctText}」でした。`;
             }
 
-            setTimeout(() => {
+            feedbackModalTimer = setTimeout(() => {
                 feedbackModal.classList.remove('hidden');
+                feedbackModalTimer = null;
             }, 400);
+        }
+
+        function resetTestFeedbackState() {
+            if (feedbackModalTimer !== null) {
+                clearTimeout(feedbackModalTimer);
+                feedbackModalTimer = null;
+            }
+            document.getElementById('test-feedback-modal').classList.add('hidden');
+            document.getElementById('choices-container').replaceChildren();
         }
 
         function nextTestQuestion() {
